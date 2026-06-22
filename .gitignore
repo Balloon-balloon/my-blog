@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# database files
+*.db
+*.db-journal
+
+# seed data (contains password hashes)
+prisma/seed-data.json
+
+# export scripts
+check_db.py
+export_db.py
