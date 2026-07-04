@@ -63,14 +63,6 @@ export async function POST(req: NextRequest) {
 // 删除评论
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: '请先登录' },
-        { status: 401 }
-      )
-    }
-
     const { searchParams } = new URL(req.url)
     const commentId = searchParams.get('id')
 
@@ -89,14 +81,6 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json(
         { error: '评论不存在' },
         { status: 404 }
-      )
-    }
-
-    // 只有评论作者可以删除
-    if (comment.authorId && comment.authorId !== parseInt(session.user.id)) {
-      return NextResponse.json(
-        { error: '无权删除此评论' },
-        { status: 403 }
       )
     }
 

@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 // 点赞/取消点赞
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: '请先登录' },
-        { status: 401 }
-      )
-    }
-
     const { postId } = await req.json()
 
     if (!postId) {
@@ -23,16 +13,19 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const userId = parseInt(session.user.id)
+    // 使用客户端 IP 作为用户标识
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || 'unknown'
     const postIdInt = parseInt(postId)
 
     // 检查是否已点赞
-    const existingLike = await prisma.like.findUnique({
+    const existingLike = await prisma.like.findFirst({
       where: {
-        userId_postId: {
-          userId,
-          postId: postIdInt
-        }
+        postId: postIdInt,
+        OR: [
+          { guestIp: ip },
+        ]
       }
     })
 
@@ -51,7 +44,7 @@ export async function POST(req: NextRequest) {
       // 点赞
       await prisma.like.create({
         data: {
-          userId,
+          guestIp: ip,
           postId: postIdInt
         }
       })
@@ -74,10 +67,9 @@ export async function POST(req: NextRequest) {
 // 检查是否已点赞
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json({ liked: false })
-    }
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || 'unknown'
 
     const { searchParams } = new URL(req.url)
     const postId = searchParams.get('postId')
@@ -89,12 +81,10 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const like = await prisma.like.findUnique({
+    const like = await prisma.like.findFirst({
       where: {
-        userId_postId: {
-          userId: parseInt(session.user.id),
-          postId: parseInt(postId)
-        }
+        postId: parseInt(postId),
+        guestIp: ip,
       }
     })
 

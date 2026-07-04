@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 
 interface Category {
@@ -19,7 +18,6 @@ interface Tag {
 
 export default function NewPostPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
 
   const [title, setTitle] = useState('')
   const [excerpt, setExcerpt] = useState('')
@@ -43,13 +41,6 @@ export default function NewPostPage() {
   const [newTagName, setNewTagName] = useState('')
   const [creatingCategory, setCreatingCategory] = useState(false)
   const [creatingTag, setCreatingTag] = useState(false)
-
-  // 未登录用户重定向到登录页
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    }
-  }, [status, router])
 
   // 获取分类和标签数据
   useEffect(() => {
@@ -77,10 +68,8 @@ export default function NewPostPage() {
       }
     }
 
-    if (status === 'authenticated') {
-      fetchData()
-    }
-  }, [status])
+    fetchData()
+  }, [])
 
   const handleTagToggle = (tagId: number) => {
     setSelectedTagIds((prev) =>
@@ -189,18 +178,10 @@ export default function NewPostPage() {
     }
   }
 
-  if (status === 'loading' || fetching) {
+  if (fetching) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-500">加载中...</div>
-      </div>
-    )
-  }
-
-  if (status === 'unauthenticated') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">正在跳转到登录页...</div>
       </div>
     )
   }

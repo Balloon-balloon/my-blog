@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 // 收藏/取消收藏
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: '请先登录' },
-        { status: 401 }
-      )
-    }
-
     const { postId } = await req.json()
 
     if (!postId) {
@@ -23,16 +13,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const userId = parseInt(session.user.id)
+    // 使用客户端 IP 作为用户标识
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || 'unknown'
     const postIdInt = parseInt(postId)
 
     // 检查是否已收藏
-    const existingFavorite = await prisma.favorite.findUnique({
+    const existingFavorite = await prisma.favorite.findFirst({
       where: {
-        userId_postId: {
-          userId,
-          postId: postIdInt
-        }
+        postId: postIdInt,
+        guestIp: ip,
       }
     })
 
@@ -51,7 +42,7 @@ export async function POST(req: NextRequest) {
       // 收藏
       await prisma.favorite.create({
         data: {
-          userId,
+          guestIp: ip,
           postId: postIdInt
         }
       })
@@ -74,22 +65,18 @@ export async function POST(req: NextRequest) {
 // 检查是否已收藏 / 获取当前用户所有收藏
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: '请先登录' },
-        { status: 401 }
-      )
-    }
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || 'unknown'
 
     const { searchParams } = new URL(req.url)
     const postId = searchParams.get('postId')
 
-    // 如果没有 postId，返回当前用户的所有收藏列表
+    // 如果没有 postId，返回当前用户（IP）的所有收藏列表
     if (!postId) {
       const favorites = await prisma.favorite.findMany({
         where: {
-          userId: parseInt(session.user.id)
+          guestIp: ip
         },
         include: {
           post: {
@@ -112,12 +99,10 @@ export async function GET(req: NextRequest) {
     }
 
     // 有 postId 时检查是否已收藏
-    const favorite = await prisma.favorite.findUnique({
+    const favorite = await prisma.favorite.findFirst({
       where: {
-        userId_postId: {
-          userId: parseInt(session.user.id),
-          postId: parseInt(postId)
-        }
+        postId: parseInt(postId),
+        guestIp: ip,
       }
     })
 

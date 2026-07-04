@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
@@ -42,21 +40,12 @@ interface Favorite {
 }
 
 export default function FavoritesPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-
   const [favorites, setFavorites] = useState<Favorite[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-      return
-    }
-    if (status === 'authenticated' && session?.user) {
-      fetchFavorites()
-    }
-  }, [status, session])
+    fetchFavorites()
+  }, [])
 
   const fetchFavorites = async () => {
     try {
@@ -74,16 +63,12 @@ export default function FavoritesPage() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-white/70">加载中...</div>
       </div>
     )
-  }
-
-  if (status === 'unauthenticated') {
-    return null
   }
 
   return (

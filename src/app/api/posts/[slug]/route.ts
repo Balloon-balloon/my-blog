@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 // 获取单篇文章
 export async function GET(
@@ -71,13 +69,6 @@ export async function PUT(
 ) {
   try {
     const { slug } = await params
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: '请先登录' },
-        { status: 401 }
-      )
-    }
 
     const post = await prisma.post.findUnique({
       where: { slug: decodeURIComponent(slug) }
@@ -87,13 +78,6 @@ export async function PUT(
       return NextResponse.json(
         { error: '文章不存在' },
         { status: 404 }
-      )
-    }
-
-    if (post.authorId !== parseInt(session.user.id)) {
-      return NextResponse.json(
-        { error: '无权修改此文章' },
-        { status: 403 }
       )
     }
 
@@ -137,13 +121,6 @@ export async function DELETE(
 ) {
   try {
     const { slug } = await params
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: '请先登录' },
-        { status: 401 }
-      )
-    }
 
     const post = await prisma.post.findUnique({
       where: { slug: decodeURIComponent(slug) }
@@ -153,13 +130,6 @@ export async function DELETE(
       return NextResponse.json(
         { error: '文章不存在' },
         { status: 404 }
-      )
-    }
-
-    if (post.authorId !== parseInt(session.user.id)) {
-      return NextResponse.json(
-        { error: '无权删除此文章' },
-        { status: 403 }
       )
     }
 

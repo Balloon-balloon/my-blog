@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 
 interface Category {
@@ -40,7 +39,6 @@ interface Post {
 export default function EditPostPage() {
   const router = useRouter()
   const params = useParams()
-  const { data: session, status } = useSession()
   const slug = params.slug as string
 
   const [title, setTitle] = useState('')
@@ -58,13 +56,6 @@ export default function EditPostPage() {
   const [fetching, setFetching] = useState(true)
   const [error, setError] = useState('')
   const [notFound, setNotFound] = useState(false)
-
-  // 未登录用户重定向到登录页
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    }
-  }, [status, router])
 
   // 获取文章、分类和标签数据
   useEffect(() => {
@@ -126,20 +117,8 @@ export default function EditPostPage() {
       }
     }
 
-    if (status === 'authenticated') {
-      fetchData()
-    }
-  }, [slug, status])
-
-  // 检查是否为作者，非作者重定向到首页
-  useEffect(() => {
-    if (post && session?.user) {
-      const currentUserId = parseInt(session.user.id)
-      if (post.authorId !== currentUserId) {
-        router.push('/')
-      }
-    }
-  }, [post, session, router])
+    fetchData()
+  }, [slug])
 
   const handleTagToggle = (tagId: number) => {
     setSelectedTagIds((prev) =>
@@ -187,18 +166,10 @@ export default function EditPostPage() {
     }
   }
 
-  if (status === 'loading' || fetching) {
+  if (fetching) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-gray-500 dark:text-gray-400">加载中...</div>
-      </div>
-    )
-  }
-
-  if (status === 'unauthenticated') {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-500 dark:text-gray-400">正在跳转到登录页...</div>
       </div>
     )
   }

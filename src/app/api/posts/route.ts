@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { slugify } from '@/lib/utils'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 // 获取文章列表
 export async function GET(req: NextRequest) {
@@ -19,17 +17,9 @@ export async function GET(req: NextRequest) {
 
     const where: any = { published: true }
 
-    // 如果请求草稿，需要登录并只返回当前用户的未发布文章
+    // 如果请求草稿，直接返回所有未发布文章
     if (drafts === 'true') {
-      const session = await getServerSession(authOptions)
-      if (!session?.user) {
-        return NextResponse.json(
-          { error: '请先登录' },
-          { status: 401 }
-        )
-      }
       where.published = false
-      where.authorId = parseInt(session.user.id)
     }
 
     if (category) {
@@ -88,13 +78,10 @@ export async function GET(req: NextRequest) {
 // 创建文章
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: '请先登录' },
-        { status: 401 }
-      )
-    }
+    // 获取客户端 IP 作为访客标识
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || 'unknown'
 
     const { title, content, excerpt, categoryId, tagIds, published } = await req.json()
 
@@ -116,7 +103,8 @@ export async function POST(req: NextRequest) {
         content,
         excerpt: excerpt || content.slice(0, 200) + '...',
         published: published ?? true,
-        authorId: parseInt(session.user.id),
+        authorId: null,
+        guestIp: ip,
         categoryId: categoryId ? parseInt(categoryId) : null,
         tags: tagIds ? {
           connect: tagIds.map((id: string) => ({ id: parseInt(id) }))

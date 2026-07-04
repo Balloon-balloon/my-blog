@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
@@ -43,23 +41,14 @@ interface Post {
 }
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-
   const [user, setUser] = useState<User | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-      return
-    }
-    if (status === 'authenticated' && session?.user) {
-      fetchUserData()
-    }
-  }, [status, session])
+    fetchUserData()
+  }, [])
 
   const fetchUserData = async () => {
     try {
@@ -86,7 +75,7 @@ export default function ProfilePage() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-gray-500 dark:text-gray-400">加载中...</div>

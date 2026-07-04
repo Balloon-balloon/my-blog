@@ -35,8 +35,9 @@ model Post {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  authorId    Int
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    Int?
+  author      User?    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  guestIp     String?
 
   categoryId  Int?
   category    Category? @relation(fields: [categoryId], references: [id])
@@ -94,24 +95,22 @@ model Like {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
 
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestIp   String?
 
   postId    Int
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId])
 }
 
 model Favorite {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
 
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestIp   String?
 
   postId    Int
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId])
 }
