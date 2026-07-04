@@ -1,9 +1,9 @@
 [build]
 builder = "NIXPACKS"
-NIXPACKS_START_CMD = "npx next start -H 0.0.0.0"
+NIXPACKS_START_CMD = "sh start.sh"
 
 [deploy]
-startCommand = "npx next start -H 0.0.0.0"
+startCommand = "sh start.sh"
 healthcheckPath = "/"
 healthcheckTimeout = 600
 restartPolicyType = "ON_FAILURE"
