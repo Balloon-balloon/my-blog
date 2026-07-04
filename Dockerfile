@@ -11,6 +11,9 @@ COPY . .
 
 RUN npx prisma generate
 
+# Push schema to database before starting
+RUN npx prisma db push --skip-generate 2>/dev/null || true
+
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+CMD ["npm", "start"]
