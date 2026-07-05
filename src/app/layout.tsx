@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Navbar } from "@/components/Navbar";
+import AIChatWidget from "@/components/AIChatWidget";
 import AnimeBackground from "@/components/AnimeBackground";
 import ClickEffects from "@/components/ClickEffects";
 import MouseTrail from "@/components/MouseTrail";
@@ -53,6 +54,9 @@ export default function RootLayout({
           <main className="relative z-10 min-h-screen">
             {children}
           </main>
+
+          {/* AI 聊天浮窗 - 全局 */}
+          <AIChatWidget />
         </Providers>
       </body>
     </html>

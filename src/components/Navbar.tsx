@@ -33,6 +33,9 @@ export function Navbar() {
               <Link href="/posts/new" className="text-white/70 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg text-sm font-medium transition-all">
                 ✍️ 写文章
               </Link>
+              <Link href="/ai" className="text-white/70 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg text-sm font-medium transition-all">
+                🤖 AI助手
+              </Link>
             </div>
           </div>
           <div className="flex items-center md:hidden">
@@ -70,6 +73,9 @@ export function Navbar() {
             </Link>
             <Link href="/posts/new" className="block text-white/70 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg text-sm font-medium transition-all" onClick={() => setIsMenuOpen(false)}>
               ✍️ 写文章
+            </Link>
+            <Link href="/ai" className="block text-white/70 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg text-sm font-medium transition-all" onClick={() => setIsMenuOpen(false)}>
+              🤖 AI助手
             </Link>
           </div>
         )}

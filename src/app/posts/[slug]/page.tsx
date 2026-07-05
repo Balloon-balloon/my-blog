@@ -7,6 +7,8 @@ import remarkGfm from 'remark-gfm'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import Link from 'next/link'
+import AIChatWidget from '@/components/AIChatWidget'
+import { PostAIPanel } from '@/components/PostAIPanel'
 
 interface Author {
   id: number
@@ -89,6 +91,7 @@ export default function PostPage() {
   const [showGuestForm, setShowGuestForm] = useState(false)
 
   const [deleting, setDeleting] = useState(false)
+  const [showAIPanel, setShowAIPanel] = useState(false)
 
   useEffect(() => {
     if (!slug) return
@@ -314,7 +317,7 @@ export default function PostPage() {
 
   return (
     <div className="min-h-screen py-8">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className={`mx-auto px-4 flex gap-6 ${showAIPanel ? 'max-w-[1400px]' : 'max-w-4xl'}`}>
         {/* 文章头部 */}
         <header className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg mb-4">
@@ -424,6 +427,25 @@ export default function PostPage() {
             <span>
               收藏 {favoriteCount > 0 && `(${favoriteCount})`}
             </span>
+          </button>
+
+          <button
+            onClick={() => setShowAIPanel(!showAIPanel)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors backdrop-blur-sm ${
+              showAIPanel
+                ? 'bg-purple-500/30 text-purple-200 border border-purple-400/30'
+                : 'bg-white/10 text-white/80 border border-white/20 hover:bg-white/20'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 2.47a2.25 2.25 0 00-.659 1.59v1.19a2.25 2.25 0 01-2.25 2.25h-3.24a2.25 2.25 0 01-2.25-2.25v-1.19a2.25 2.25 0 00-.659-1.59L5 14.5m14 0H5"
+              />
+            </svg>
+            <span>AI 助手</span>
           </button>
 
           <Link
@@ -693,6 +715,51 @@ export default function PostPage() {
           </div>
         </section>
       </div>
+
+      {/* AI 侧边面板 */}
+      {showAIPanel && (
+        <div
+          className="w-[400px] flex-shrink-0 hidden lg:block"
+          style={{
+            position: 'sticky',
+            top: '80px',
+            alignSelf: 'flex-start',
+            maxHeight: 'calc(100vh - 100px)',
+          }}
+        >
+          <div
+            className="rounded-2xl overflow-hidden shadow-2xl"
+            style={{
+              background: 'rgba(15, 15, 35, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 105, 180, 0.25)',
+            }}
+          >
+            <div
+              className="px-4 py-3 flex items-center justify-between"
+              style={{
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%)',
+                borderBottom: '1px solid rgba(255, 105, 180, 0.15)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">🤖</span>
+                <span className="text-white font-bold text-sm">AI 助手</span>
+                <span className="text-[10px] text-white/40">- 基于本文内容</span>
+              </div>
+              <button
+                onClick={() => setShowAIPanel(false)}
+                className="text-white/60 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <PostAIPanel context={`标题：${post.title}\n\n${post.content.substring(0, 2000)}`} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
