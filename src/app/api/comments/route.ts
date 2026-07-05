@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
-// 创建评论（支持登录用户和访客）
+// 创建评论（支持访客评论）
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
     const { content, postId, parentId, guestName, guestEmail } = await req.json()
 
     if (!content || !postId) {
@@ -22,24 +19,18 @@ export async function POST(req: NextRequest) {
       parentId: parentId ? parseInt(parentId) : null,
     }
 
-    // 如果是登录用户
-    if (session?.user) {
-      commentData.authorId = parseInt(session.user.id)
-      commentData.isGuest = false
-    } else {
-      // 访客评论
-      if (!guestName || !guestEmail) {
-        return NextResponse.json(
-          { error: '访客需要提供昵称和邮箱' },
-          { status: 400 }
-        )
-      }
-      commentData.isGuest = true
-      commentData.guestName = guestName.trim()
-      commentData.guestEmail = guestEmail.trim()
-      // 生成随机访客头像
-      commentData.guestAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(guestEmail)}`
+    // 访客评论
+    if (!guestName || !guestEmail) {
+      return NextResponse.json(
+        { error: '请提供昵称和邮箱' },
+        { status: 400 }
+      )
     }
+    commentData.isGuest = true
+    commentData.guestName = guestName.trim()
+    commentData.guestEmail = guestEmail.trim()
+    // 生成随机访客头像
+    commentData.guestAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(guestEmail)}`
 
     const comment = await prisma.comment.create({
       data: commentData,

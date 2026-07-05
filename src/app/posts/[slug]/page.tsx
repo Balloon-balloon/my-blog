@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { format } from 'date-fns'
@@ -67,18 +66,15 @@ interface Post {
 export default function PostPage() {
   const params = useParams()
   const router = useRouter()
-  const { data: session, status } = useSession()
   const slug = params.slug as string
 
   const [post, setPost] = useState<Post | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [liking, setLiking] = useState(false)
 
-  const [favorited, setFavorited] = useState(false)
   const [favoriteCount, setFavoriteCount] = useState(0)
   const [favoriting, setFavoriting] = useState(false)
 
@@ -94,19 +90,43 @@ export default function PostPage() {
 
   const [deleting, setDeleting] = useState(false)
 
-  const isAuthor = session?.user && post?.author.id === parseInt(session.user.id)
-
   useEffect(() => {
     if (!slug) return
     fetchPost()
   }, [slug])
 
   useEffect(() => {
-    if (post && session?.user) {
-      checkLikeStatus()
-      checkFavoriteStatus()
+    if (post) {
+      fetchLikeCount()
+      fetchFavoriteCount()
     }
-  }, [post, session])
+  }, [post])
+
+  const fetchLikeCount = async () => {
+    if (!post) return
+    try {
+      const res = await fetch(`/api/likes?postId=${post.id}&countOnly=true`)
+      if (res.ok) {
+        const data = await res.json()
+        setLikeCount(data.count)
+      }
+    } catch (error) {
+      console.error('获取点赞数失败:', error)
+    }
+  }
+
+  const fetchFavoriteCount = async () => {
+    if (!post) return
+    try {
+      const res = await fetch(`/api/favorites?postId=${post.id}&countOnly=true`)
+      if (res.ok) {
+        const data = await res.json()
+        setFavoriteCount(data.count)
+      }
+    } catch (error) {
+      console.error('获取收藏数失败:', error)
+    }
+  }
 
   const fetchPost = async () => {
     try {
@@ -127,39 +147,7 @@ export default function PostPage() {
     }
   }
 
-  const checkLikeStatus = async () => {
-    if (!post) return
-    try {
-      const res = await fetch(`/api/likes?postId=${post.id}`)
-      if (res.ok) {
-        const data = await res.json()
-        setLiked(data.liked)
-        setLikeCount(data.count)
-      }
-    } catch (error) {
-      console.error('检查点赞状态失败:', error)
-    }
-  }
-
-  const checkFavoriteStatus = async () => {
-    if (!post) return
-    try {
-      const res = await fetch(`/api/favorites?postId=${post.id}`)
-      if (res.ok) {
-        const data = await res.json()
-        setFavorited(data.favorited)
-        setFavoriteCount(data.count)
-      }
-    } catch (error) {
-      console.error('检查收藏状态失败:', error)
-    }
-  }
-
   const handleLike = async () => {
-    if (status !== 'authenticated') {
-      router.push('/login')
-      return
-    }
     if (!post || liking) return
     try {
       setLiking(true)
@@ -170,7 +158,6 @@ export default function PostPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        setLiked(data.liked)
         setLikeCount(data.count)
       }
     } catch (error) {
@@ -181,10 +168,6 @@ export default function PostPage() {
   }
 
   const handleFavorite = async () => {
-    if (status !== 'authenticated') {
-      router.push('/login')
-      return
-    }
     if (!post || favoriting) return
     try {
       setFavoriting(true)
@@ -195,7 +178,6 @@ export default function PostPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        setFavorited(data.favorited)
         setFavoriteCount(data.count)
       }
     } catch (error) {
@@ -209,8 +191,8 @@ export default function PostPage() {
     e.preventDefault()
     if (!post || !commentContent.trim() || submittingComment) return
 
-    // 未登录且未填写访客信息
-    if (status !== 'authenticated' && (!guestName.trim() || !guestEmail.trim())) {
+    // 未填写访客信息
+    if (!guestName.trim() || !guestEmail.trim()) {
       setShowGuestForm(true)
       return
     }
@@ -220,10 +202,8 @@ export default function PostPage() {
       const body: any = {
         postId: post.id,
         content: commentContent.trim(),
-      }
-      if (status !== 'authenticated') {
-        body.guestName = guestName.trim()
-        body.guestEmail = guestEmail.trim()
+        guestName: guestName.trim(),
+        guestEmail: guestEmail.trim(),
       }
 
       const res = await fetch('/api/comments', {
@@ -247,11 +227,12 @@ export default function PostPage() {
 
   const handleSubmitReply = async (e: React.FormEvent, parentId: number) => {
     e.preventDefault()
-    if (status !== 'authenticated') {
-      alert('请先登录后回复')
+    if (!post || !replyContent.trim() || submittingComment) return
+    if (!guestName.trim() || !guestEmail.trim()) {
+      setShowGuestForm(true)
+      setReplyingTo(null)
       return
     }
-    if (!post || !replyContent.trim() || submittingComment) return
     try {
       setSubmittingComment(true)
       const res = await fetch('/api/comments', {
@@ -261,12 +242,17 @@ export default function PostPage() {
           postId: post.id,
           content: replyContent.trim(),
           parentId,
+          guestName: guestName.trim(),
+          guestEmail: guestEmail.trim(),
         }),
       })
       if (res.ok) {
         setReplyContent('')
         setReplyingTo(null)
         await fetchPost()
+      } else {
+        const data = await res.json()
+        alert(data.error || '发表回复失败')
       }
     } catch (error) {
       console.error('发表回复失败:', error)
@@ -394,14 +380,12 @@ export default function PostPage() {
             onClick={handleLike}
             disabled={liking}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors backdrop-blur-sm ${
-              liked
-                ? 'bg-red-500/30 text-red-300 border border-red-400/40'
-                : 'bg-white/10 text-white/80 border border-white/20 hover:bg-white/20'
+              'bg-white/10 text-white/80 border border-white/20 hover:bg-white/20'
             }`}
           >
             <svg
               className="w-5 h-5"
-              fill={liked ? 'currentColor' : 'none'}
+              fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
@@ -413,7 +397,7 @@ export default function PostPage() {
               />
             </svg>
             <span>
-              {liked ? '已点赞' : '点赞'} {likeCount > 0 && `(${likeCount})`}
+              点赞 {likeCount > 0 && `(${likeCount})`}
             </span>
           </button>
 
@@ -421,14 +405,12 @@ export default function PostPage() {
             onClick={handleFavorite}
             disabled={favoriting}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors backdrop-blur-sm ${
-              favorited
-                ? 'bg-yellow-500/30 text-yellow-300 border border-yellow-400/40'
-                : 'bg-white/10 text-white/80 border border-white/20 hover:bg-white/20'
+              'bg-white/10 text-white/80 border border-white/20 hover:bg-white/20'
             }`}
           >
             <svg
               className="w-5 h-5"
-              fill={favorited ? 'currentColor' : 'none'}
+              fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
@@ -440,43 +422,39 @@ export default function PostPage() {
               />
             </svg>
             <span>
-              {favorited ? '已收藏' : '收藏'} {favoriteCount > 0 && `(${favoriteCount})`}
+              收藏 {favoriteCount > 0 && `(${favoriteCount})`}
             </span>
           </button>
 
-          {isAuthor && (
-            <>
-              <Link
-                href={`/posts/${post.slug}/edit`}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500/30 text-blue-200 rounded-lg hover:bg-blue-500/50 transition-colors border border-blue-400/30 backdrop-blur-sm"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-                <span>编辑</span>
-              </Link>
-              <button
-                onClick={handleDeletePost}
-                disabled={deleting}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/30 text-red-300 rounded-lg hover:bg-red-500/50 transition-colors border border-red-400/30 backdrop-blur-sm"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-                <span>{deleting ? '删除中...' : '删除'}</span>
-              </button>
-            </>
-          )}
+          <Link
+            href={`/posts/${post.slug}/edit`}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500/30 text-blue-200 rounded-lg hover:bg-blue-500/50 transition-colors border border-blue-400/30 backdrop-blur-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+            <span>编辑</span>
+          </Link>
+          <button
+            onClick={handleDeletePost}
+            disabled={deleting}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500/30 text-red-300 rounded-lg hover:bg-red-500/50 transition-colors border border-red-400/30 backdrop-blur-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+            <span>{deleting ? '删除中...' : '删除'}</span>
+          </button>
         </div>
 
         {/* 评论区域 */}
@@ -488,7 +466,7 @@ export default function PostPage() {
           {/* 发表评论 */}
           <form onSubmit={handleSubmitComment} className="mb-8">
             {/* 访客信息输入 */}
-            {status !== 'authenticated' && showGuestForm && (
+            {showGuestForm && (
               <div className="mb-4 p-4 bg-white/10 rounded-lg border border-white/20 backdrop-blur-sm space-y-3">
                 <p className="text-white/70 text-sm">填写以下信息即可发表评论（无需注册）</p>
                 <div className="flex gap-3">
@@ -515,13 +493,13 @@ export default function PostPage() {
             <textarea
               value={commentContent}
               onChange={(e) => setCommentContent(e.target.value)}
-              placeholder={status === 'authenticated' ? "写下你的评论..." : "写下你的评论（无需登录即可评论）..."}
+              placeholder="写下你的评论（无需登录即可评论）..."
               rows={4}
               className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none backdrop-blur-sm"
             />
             <div className="mt-2 flex justify-between items-center">
-              {status !== 'authenticated' && !showGuestForm && (
-                <span className="text-white/50 text-sm">💡 无需登录，直接评论即可</span>
+              {!showGuestForm && (
+                <span className="text-white/50 text-sm">请填写昵称和邮箱后即可评论</span>
               )}
               <div className="flex-1"></div>
               <button
@@ -588,25 +566,20 @@ export default function PostPage() {
                         {comment.content}
                       </p>
                       <div className="mt-2 flex items-center gap-3">
-                        {status === 'authenticated' && (
-                          <button
-                            onClick={() =>
-                              setReplyingTo(replyingTo === comment.id ? null : comment.id)
-                            }
-                            className="text-sm text-blue-300 hover:text-blue-200 hover:underline"
-                          >
-                            {replyingTo === comment.id ? '取消回复' : '回复'}
-                          </button>
-                        )}
-                        {session?.user && comment.author &&
-                          parseInt(session.user.id) === comment.author.id && (
-                            <button
-                              onClick={() => handleDeleteComment(comment.id)}
-                              className="text-sm text-red-300 hover:text-red-200 hover:underline"
-                            >
-                              删除
-                            </button>
-                          )}
+                        <button
+                          onClick={() =>
+                            setReplyingTo(replyingTo === comment.id ? null : comment.id)
+                          }
+                          className="text-sm text-blue-300 hover:text-blue-200 hover:underline"
+                        >
+                          {replyingTo === comment.id ? '取消回复' : '回复'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          className="text-sm text-red-300 hover:text-red-200 hover:underline"
+                        >
+                          删除
+                        </button>
                       </div>
 
                       {/* 回复表单 */}
@@ -615,6 +588,29 @@ export default function PostPage() {
                           onSubmit={(e) => handleSubmitReply(e, comment.id)}
                           className="mt-3"
                         >
+                          {(!guestName.trim() || !guestEmail.trim()) && (
+                            <div className="mb-3 p-3 bg-white/10 rounded-lg border border-white/20 backdrop-blur-sm space-y-2">
+                              <p className="text-white/70 text-xs">填写昵称和邮箱后即可回复</p>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={guestName}
+                                  onChange={(e) => setGuestName(e.target.value)}
+                                  placeholder="你的昵称"
+                                  required
+                                  className="flex-1 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs"
+                                />
+                                <input
+                                  type="email"
+                                  value={guestEmail}
+                                  onChange={(e) => setGuestEmail(e.target.value)}
+                                  placeholder="你的邮箱"
+                                  required
+                                  className="flex-1 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs"
+                                />
+                              </div>
+                            </div>
+                          )}
                           <textarea
                             value={replyContent}
                             onChange={(e) => setReplyContent(e.target.value)}
@@ -677,15 +673,12 @@ export default function PostPage() {
                                 <p className="text-sm text-white/80 whitespace-pre-wrap">
                                   {reply.content}
                                 </p>
-                                {session?.user &&
-                                  parseInt(session.user.id) === reply.author.id && (
-                                    <button
-                                      onClick={() => handleDeleteComment(reply.id)}
-                                      className="mt-1 text-xs text-red-300 hover:text-red-200 hover:underline"
-                                    >
-                                      删除
-                                    </button>
-                                  )}
+                                <button
+                                  onClick={() => handleDeleteComment(reply.id)}
+                                  className="mt-1 text-xs text-red-300 hover:text-red-200 hover:underline"
+                                >
+                                  删除
+                                </button>
                               </div>
                             </div>
                           ))}
