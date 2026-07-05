@@ -15,10 +15,10 @@ export async function GET() {
     })
 
     return NextResponse.json({ categories })
-  } catch (error) {
+  } catch (error: any) {
     console.error('获取分类错误:', error)
     return NextResponse.json(
-      { error: '获取分类失败' },
+      { error: '获取分类失败', details: error?.message || String(error), stack: error?.stack?.split('\n').slice(0, 3) },
       { status: 500 }
     )
   }
