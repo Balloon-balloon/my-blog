@@ -322,19 +322,19 @@ export default function PostPage() {
           </h1>
           <div className="flex flex-wrap items-center gap-4 text-sm text-white/70">
             <div className="flex items-center gap-2">
-              {post.author.avatar ? (
+              {post.author?.avatar ? (
                 <img
                   src={post.author.avatar}
-                  alt={post.author.name || post.author.username}
+                  alt={post.author?.name || post.author?.username}
                   className="w-8 h-8 rounded-full object-cover"
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">
-                  {(post.author.name || post.author.username).charAt(0).toUpperCase()}
+                  {(post.author?.name || post.author?.username || '?').charAt(0).toUpperCase()}
                 </div>
               )}
               <span className="font-medium text-white/90">
-                {post.author.name || post.author.username}
+                {post.author?.name || post.author?.username || '匿名'}
               </span>
             </div>
             <span className="text-white/40">|</span>

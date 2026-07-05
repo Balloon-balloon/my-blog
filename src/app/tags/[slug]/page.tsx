@@ -168,7 +168,7 @@ export default function TagPostsPage() {
 
                   <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                     <div className="flex items-center space-x-4">
-                      <span>{post.author.name || post.author.username}</span>
+                      <span>{post.author?.name || post.author?.username || '匿名'}</span>
                     </div>
                     <div className="flex items-center space-x-4">
                       <span className="flex items-center">

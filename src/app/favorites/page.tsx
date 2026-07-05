@@ -115,20 +115,20 @@ export default function FavoritesPage() {
 
                   <div className="flex items-center justify-between text-sm text-white/60">
                     <div className="flex items-center gap-2">
-                      {favorite.post.author.avatar ? (
+                      {favorite.post.author?.avatar ? (
                         <img
                           src={favorite.post.author.avatar}
-                          alt={favorite.post.author.name || favorite.post.author.username}
+                          alt={favorite.post.author?.name || favorite.post.author?.username}
                           className="w-6 h-6 rounded-full object-cover"
                         />
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">
-                          {(favorite.post.author.name || favorite.post.author.username)
+                          {(favorite.post.author?.name || favorite.post.author?.username || '?')
                             .charAt(0)
                             .toUpperCase()}
                         </div>
                       )}
-                      <span>{favorite.post.author.name || favorite.post.author.username}</span>
+                      <span>{favorite.post.author?.name || favorite.post.author?.username || '匿名'}</span>
                     </div>
                     <span>
                       收藏于{' '}

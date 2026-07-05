@@ -87,13 +87,13 @@ export default function MouseTrail() {
 
         const alpha = p.life
         ctx.beginPath()
-        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2)
+        ctx.arc(p.x, p.y, Math.max(0, p.size * p.life), 0, Math.PI * 2)
         ctx.fillStyle = p.color.replace('0.8', alpha.toFixed(2))
         ctx.fill()
 
         // 添加光晕效果
         ctx.beginPath()
-        ctx.arc(p.x, p.y, p.size * p.life * 2, 0, Math.PI * 2)
+        ctx.arc(p.x, p.y, Math.max(0, p.size * p.life * 2), 0, Math.PI * 2)
         ctx.fillStyle = p.color.replace('0.8', (alpha * 0.3).toFixed(2))
         ctx.fill()
       })

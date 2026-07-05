@@ -108,9 +108,9 @@ export default function PostsPage() {
                   <div className="flex items-center justify-between newspaper-meta">
                     <div className="flex items-center space-x-2">
                       <div className="w-5 h-5 rounded-full bg-amber-700/20 flex items-center justify-center text-xs text-amber-800">
-                        {post.author.name?.[0] || post.author.username[0]}
+                        {post.author?.name?.[0] || post.author?.username?.[0] || '?'}
                       </div>
-                      <span>{post.author.name || post.author.username}</span>
+                      <span>{post.author?.name || post.author?.username || '匿名'}</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="flex items-center">
