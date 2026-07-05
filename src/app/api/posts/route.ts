@@ -66,10 +66,10 @@ export async function GET(req: NextRequest) {
         totalPages: Math.ceil(total / limit)
       }
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('获取文章列表错误:', error)
     return NextResponse.json(
-      { error: '获取文章列表失败' },
+      { error: '获取文章列表失败', details: error?.message || String(error) },
       { status: 500 }
     )
   }
